@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Сканер QR-кода</title>
+    <script src="https://cdn.jsdelivr.net/npm/qr-scanner@2.3.0/dist/qr-scanner.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/qr-scanner@2.3.0/dist/css/qr-scanner.min.css">
+</head>
+<body>
+
+    <video id="preview"></video>
+    <button id="startButton">Начать сканирование</button>
+    <p id="result"></p>
+
+    <script>
+        // Настройка камеры и сканера
+        const preview = document.getElementById('preview');
+        const startButton = document.getElementById('startButton');
+        const resultElement = document.getElementById('result');
+
+        QRScanner.init(preview);
+
+        startButton.addEventListener('click', () => {
+            if (QRScanner.hasCameraPermission()) {
+                QRScanner.start();
+                QRScanner.scan((err, result) => {
+                    if (err) {
+                        console.error(err);
+                    } else {
+                        resultElement.textContent = `Сканировано: ${result.text}`;
+                        // Здесь можно обработать сканированный QR-код
+                    }
+                });
+            } else {
+                QRScanner.requestCameraPermission(() => {
+                    QRScanner.start();
+                });
+            }
+        });
+
+        // Остановка сканирования при закрытии страницы
+        window.addEventListener('beforeunload', () => {
+            QRScanner.stop();
+        });
+    </script>
+</body>
+</html>
