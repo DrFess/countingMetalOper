@@ -4,44 +4,52 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Сканер QR-кода</title>
-    <script src="https://cdn.jsdelivr.net/npm/qr-scanner@2.3.0/dist/qr-scanner.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/qr-scanner@2.3.0/dist/css/qr-scanner.min.css">
+    <script src="https://unpkg.com/quagga@0.12.1/dist/quagga.min.js"></script>
 </head>
 <body>
-
-    <video id="preview"></video>
-    <button id="startButton">Начать сканирование</button>
-    <p id="result"></p>
-
+    <h1>QR-код</h1>
+    <div id="scanner-container" style="width: 100%; height: 200px;"></div>
+    <p>QR Code: <span id="qr-code-result"></span></p>
+    <button id="send-result" style="display: none;">Отправить в телеграм-бота</button>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script>
-        // Настройка камеры и сканера
-        const preview = document.getElementById('preview');
-        const startButton = document.getElementById('startButton');
-        const resultElement = document.getElementById('result');
-
-        QRScanner.init(preview);
-
-        startButton.addEventListener('click', () => {
-            if (QRScanner.hasCameraPermission()) {
-                QRScanner.start();
-                QRScanner.scan((err, result) => {
-                    if (err) {
-                        console.error(err);
-                    } else {
-                        resultElement.textContent = `Сканировано: ${result.text}`;
-                        // Здесь можно обработать сканированный QR-код
-                    }
-                });
-            } else {
-                QRScanner.requestCameraPermission(() => {
-                    QRScanner.start();
-                });
+        // let tg = window.Telegram.WebApp;
+        // Инициализация сканера
+        Quagga.init({
+            inputStream: {
+                name: "Live",
+                type: "LiveStream",
+                target: document.querySelector('#scanner-container'),
+                constraints: { facingMode: "environment" }
+            },
+            decoder: {
+                readers: ["code_128_reader", "ean_reader", "upc_reader", "qr_code_reader"],
+                multiple: false // Сканировать только один штрих-код за раз
+            },
+            locate: true, // Включает поиск штрих-кодов на изображении
+            numOfWorkers: 2, // Использовать 2 потока (можно увеличить для улучшения производительности)
+            frequency: 10,
+        }, function (err) {
+            if (err) {
+                console.error(err);
+                return;
             }
+            Quagga.start();
         });
 
-        // Остановка сканирования при закрытии страницы
-        window.addEventListener('beforeunload', () => {
-            QRScanner.stop();
+        Quagga.onDetected(function (result) {
+            var code = result.codeResult.code;
+            document.getElementById("qr-code-result").textContent = code;
+            document.getElementById("send-result").style.display = 'block';
+            Quagga.stop();
+        });
+
+        // Отправка результата в Telegram Web App
+        document.getElementById("send-result").addEventListener("click", function () {
+            const code = document.getElementById("qr-code-result").textContent;
+            if (window.Telegram && window.Telegram.WebApp) {
+                Telegram.WebApp.sendData(code); // отправить данные в бота
+            }
         });
     </script>
 </body>
