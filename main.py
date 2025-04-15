@@ -15,7 +15,7 @@ router = Router()
 @router.message(Command(commands=['start']))
 async def command_start_handler(message: Message):
     builder = ReplyKeyboardBuilder()
-    builder.row(KeyboardButton(text='Сканер штрих-кода', web_app=WebAppInfo(url=WEB_APP_URL)))
+    builder.row(KeyboardButton(text='Сканер QR кода', web_app=WebAppInfo(url=WEB_APP_URL)))
     await message.answer('Добро пожаловать!', reply_markup=builder.as_markup(resize_keyboard=True))
 
 
