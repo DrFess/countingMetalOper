@@ -198,6 +198,7 @@
 
         let html5QrcodeScanner = null;
         let isScanning = false;
+        let currentCamera = 'environment'; // 'environment' или 'user'
 
         // Обновление статуса
         function updateStatus(message, isLoading = false) {
@@ -261,24 +262,26 @@
             try {
                 updateStatus('Запуск камеры...', true);
                 
+                // Проверяем существование элемента
+                const readerElement = document.getElementById("reader");
+                if (!readerElement) {
+                    throw new Error("Элемент 'reader' не найден");
+                }
+                
                 html5QrcodeScanner = new Html5Qrcode("reader");
                 
                 const config = {
-                    fps: 30, // Увеличиваем FPS для более быстрого сканирования
-                    qrbox: { width: 250, height: 250 }, // Увеличиваем область сканирования
-                    aspectRatio: 1.0,
-                    disableFlip: false, // Разрешаем поворот камеры
-                    experimentalFeatures: {
-                        useBarCodeDetectorIfSupported: true // Используем встроенный детектор штрих-кодов
-                    }
+                    fps: 10,
+                    qrbox: { width: 250, height: 250 },
+                    aspectRatio: 1.0
                 };
 
-                // Пытаемся получить доступ к камере с высоким разрешением
+                // Базовые настройки камеры
                 const constraints = {
-                    facingMode: currentCamera,
-                    width: { ideal: 1920, min: 1280 },
-                    height: { ideal: 1080, min: 720 }
+                    facingMode: currentCamera
                 };
+
+                console.log('Запуск сканера с настройками:', { config, constraints });
 
                 await html5QrcodeScanner.start(
                     constraints,
@@ -296,6 +299,11 @@
                 
             } catch (error) {
                 console.error('Ошибка запуска сканера:', error);
+                console.error('Детали ошибки:', {
+                    name: error.name,
+                    message: error.message,
+                    stack: error.stack
+                });
                 updateStatus('Ошибка запуска камеры');
                 updateResult(`❌ Ошибка: ${error.message}`, 'error');
                 toggleRestartButton(true);
@@ -314,8 +322,6 @@
                 }
             }
         }
-
-        let currentCamera = 'environment'; // 'environment' или 'user'
 
         // Переключение камеры
         async function switchCamera() {
@@ -338,6 +344,14 @@
 
         // Инициализация при загрузке страницы
         window.addEventListener('load', () => {
+            // Проверяем загрузку библиотеки
+            if (typeof Html5Qrcode === 'undefined') {
+                updateStatus('Ошибка загрузки библиотеки сканера');
+                updateResult('❌ Не удалось загрузить библиотеку html5-qrcode', 'error');
+                toggleRestartButton(true);
+                return;
+            }
+
             // Проверяем поддержку камеры
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
                 updateStatus('Камера не поддерживается в этом браузере');
@@ -353,6 +367,8 @@
                 console.log('BarCodeDetector API не поддерживается, используем fallback');
             }
 
+            console.log('Html5Qrcode доступен:', typeof Html5Qrcode);
+            
             // Запускаем сканер
             startScanner();
         });
