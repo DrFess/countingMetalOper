@@ -267,38 +267,64 @@
                 
                 html5QrcodeScanner = new Html5Qrcode("reader");
                 
-                const config = {
-                    fps: 15, // Увеличиваем FPS для более быстрого сканирования
-                    qrbox: { width: 280, height: 280 }, // Увеличиваем область сканирования
-                    aspectRatio: 1.0,
-                    disableFlip: false // Разрешаем поворот для лучшего распознавания
-                };
+                // Пробуем запустить с базовой конфигурацией
+                try {
+                    const config = {
+                        fps: 10,
+                        qrbox: { width: 250, height: 250 },
+                        aspectRatio: 1.0
+                    };
 
-                // Настройки камеры для лучшего качества
-                const constraints = {
-                    facingMode: "environment", // Всегда используем заднюю камеру
-                    width: { ideal: 1280, min: 640 },
-                    height: { ideal: 720, min: 480 }
-                };
+                    const constraints = {
+                        facingMode: "environment"
+                    };
 
-                console.log('Запуск сканера с настройками:', { config, constraints });
+                    console.log('Попытка запуска с базовой конфигурацией:', { config, constraints });
 
-                await html5QrcodeScanner.start(
-                    constraints,
-                    config,
-                    onScanSuccess,
-                    onScanFailure
-                );
+                    await html5QrcodeScanner.start(
+                        constraints,
+                        config,
+                        onScanSuccess,
+                        onScanFailure
+                    );
 
-                isScanning = true;
-                updateStatus('Камера активна - сканируйте код');
-                updateResult('Наведите камеру на QR или штрих-код');
-                toggleRestartButton(false);
-                
-                console.log('Сканер успешно запущен');
+                    isScanning = true;
+                    updateStatus('Камера активна - сканируйте код');
+                    updateResult('Наведите камеру на QR или штрих-код');
+                    toggleRestartButton(false);
+                    
+                    console.log('Сканер успешно запущен');
+                    
+                } catch (startError) {
+                    console.warn('Ошибка с базовой конфигурацией, пробуем минимальную:', startError);
+                    
+                    // Fallback на минимальную конфигурацию
+                    const minimalConfig = {
+                        fps: 5,
+                        qrbox: { width: 200, height: 200 }
+                    };
+
+                    const minimalConstraints = {
+                        facingMode: "environment"
+                    };
+
+                    await html5QrcodeScanner.start(
+                        minimalConstraints,
+                        minimalConfig,
+                        onScanSuccess,
+                        onScanFailure
+                    );
+
+                    isScanning = true;
+                    updateStatus('Камера активна (минимальный режим) - сканируйте код');
+                    updateResult('Наведите камеру на QR или штрих-код');
+                    toggleRestartButton(false);
+                    
+                    console.log('Сканер запущен в минимальном режиме');
+                }
                 
             } catch (error) {
-                console.error('Ошибка запуска сканера:', error);
+                console.error('Критическая ошибка запуска сканера:', error);
                 console.error('Детали ошибки:', {
                     name: error.name,
                     message: error.message,
@@ -333,7 +359,7 @@
         }
 
         // Инициализация при загрузке страницы
-        window.addEventListener('load', () => {
+        window.addEventListener('load', async () => {
             // Проверяем загрузку библиотеки
             if (typeof Html5Qrcode === 'undefined') {
                 updateStatus('Ошибка загрузки библиотеки сканера');
@@ -346,6 +372,18 @@
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
                 updateStatus('Камера не поддерживается в этом браузере');
                 updateResult('❌ Ваш браузер не поддерживает доступ к камере', 'error');
+                toggleRestartButton(true);
+                return;
+            }
+
+            // Проверяем доступ к камере
+            try {
+                await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+                console.log('Доступ к камере получен');
+            } catch (cameraError) {
+                console.error('Ошибка доступа к камере:', cameraError);
+                updateStatus('Ошибка доступа к камере');
+                updateResult(`❌ Не удалось получить доступ к камере: ${cameraError.message}`, 'error');
                 toggleRestartButton(true);
                 return;
             }
