@@ -183,6 +183,9 @@
         <button class="btn" id="restartBtn" onclick="restartScanner()" style="display: none;">
             🔄 Сканировать снова
         </button>
+        <button class="btn" id="switchCameraBtn" onclick="switchCamera()" style="display: none;">
+            📷 Сменить камеру
+        </button>
     </div>
 
     <script>
@@ -211,9 +214,10 @@
             resultEl.className = `result ${type}`;
         }
 
-        // Показать/скрыть кнопку перезапуска
+        // Показать/скрыть кнопки управления
         function toggleRestartButton(show) {
             document.getElementById('restartBtn').style.display = show ? 'block' : 'none';
+            document.getElementById('switchCameraBtn').style.display = show ? 'block' : 'none';
         }
 
         // Обработка успешного сканирования
@@ -222,13 +226,18 @@
                 isScanning = false;
                 
                 console.log('Код обнаружен:', decodedText);
-                updateResult(`✅ Найден код: ${decodedText}`, 'success');
+                console.log('Тип кода:', decodedResult.result.format);
+                console.log('Полный результат:', decodedResult);
+                
+                const codeType = decodedResult.result.format || 'Неизвестный тип';
+                updateResult(`✅ Найден ${codeType}: ${decodedText}`, 'success');
                 updateStatus('Код успешно отсканирован!');
                 
                 // Отправляем результат в Telegram
                 if (tg) {
                     try {
-                        tg.sendData(decodedText);
+                        const message = `🔍 Сканирование завершено!\n\n📋 Тип: ${codeType}\n📄 Содержимое: ${decodedText}\n⏰ Время: ${new Date().toLocaleString()}`;
+                        tg.sendData(message);
                         console.log('Данные отправлены в Telegram');
                     } catch (error) {
                         console.error('Ошибка отправки в Telegram:', error);
@@ -255,16 +264,24 @@
                 html5QrcodeScanner = new Html5Qrcode("reader");
                 
                 const config = {
-                    fps: 10,
-                    qrbox: { width: 200, height: 200 },
+                    fps: 30, // Увеличиваем FPS для более быстрого сканирования
+                    qrbox: { width: 250, height: 250 }, // Увеличиваем область сканирования
                     aspectRatio: 1.0,
-                    supportedScanTypes: [
-                        Html5QrcodeScanType.SCAN_TYPE_CAMERA
-                    ]
+                    disableFlip: false, // Разрешаем поворот камеры
+                    experimentalFeatures: {
+                        useBarCodeDetectorIfSupported: true // Используем встроенный детектор штрих-кодов
+                    }
+                };
+
+                // Пытаемся получить доступ к камере с высоким разрешением
+                const constraints = {
+                    facingMode: currentCamera,
+                    width: { ideal: 1920, min: 1280 },
+                    height: { ideal: 1080, min: 720 }
                 };
 
                 await html5QrcodeScanner.start(
-                    { facingMode: "environment" },
+                    constraints,
                     config,
                     onScanSuccess,
                     onScanFailure
@@ -298,6 +315,18 @@
             }
         }
 
+        let currentCamera = 'environment'; // 'environment' или 'user'
+
+        // Переключение камеры
+        async function switchCamera() {
+            await stopScanner();
+            currentCamera = currentCamera === 'environment' ? 'user' : 'environment';
+            updateStatus(`Переключение на ${currentCamera === 'environment' ? 'заднюю' : 'переднюю'} камеру...`, true);
+            setTimeout(() => {
+                startScanner();
+            }, 1000);
+        }
+
         // Перезапуск сканера
         async function restartScanner() {
             await stopScanner();
@@ -315,6 +344,13 @@
                 updateResult('❌ Ваш браузер не поддерживает доступ к камере', 'error');
                 toggleRestartButton(true);
                 return;
+            }
+
+            // Проверяем поддержку BarCodeDetector API
+            if ('BarCodeDetector' in window) {
+                console.log('BarCodeDetector API поддерживается');
+            } else {
+                console.log('BarCodeDetector API не поддерживается, используем fallback');
             }
 
             // Запускаем сканер
