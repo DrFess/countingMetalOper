@@ -183,9 +183,6 @@
         <button class="btn" id="restartBtn" onclick="restartScanner()" style="display: none;">
             🔄 Сканировать снова
         </button>
-        <button class="btn" id="switchCameraBtn" onclick="switchCamera()" style="display: none;">
-            📷 Сменить камеру
-        </button>
     </div>
 
     <script>
@@ -198,7 +195,6 @@
 
         let html5QrcodeScanner = null;
         let isScanning = false;
-        let currentCamera = 'environment'; // 'environment' или 'user'
 
         // Обновление статуса
         function updateStatus(message, isLoading = false) {
@@ -215,10 +211,9 @@
             resultEl.className = `result ${type}`;
         }
 
-        // Показать/скрыть кнопки управления
+        // Показать/скрыть кнопку перезапуска
         function toggleRestartButton(show) {
             document.getElementById('restartBtn').style.display = show ? 'block' : 'none';
-            document.getElementById('switchCameraBtn').style.display = show ? 'block' : 'none';
         }
 
         // Обработка успешного сканирования
@@ -245,9 +240,11 @@
                     }
                 }
                 
-                // Останавливаем сканер
-                stopScanner();
-                toggleRestartButton(true);
+                // Останавливаем сканер с небольшой задержкой
+                setTimeout(() => {
+                    stopScanner();
+                    toggleRestartButton(true);
+                }, 500);
             }
         }
 
@@ -271,14 +268,17 @@
                 html5QrcodeScanner = new Html5Qrcode("reader");
                 
                 const config = {
-                    fps: 10,
-                    qrbox: { width: 250, height: 250 },
-                    aspectRatio: 1.0
+                    fps: 15, // Увеличиваем FPS для более быстрого сканирования
+                    qrbox: { width: 280, height: 280 }, // Увеличиваем область сканирования
+                    aspectRatio: 1.0,
+                    disableFlip: false // Разрешаем поворот для лучшего распознавания
                 };
 
-                // Базовые настройки камеры
+                // Настройки камеры для лучшего качества
                 const constraints = {
-                    facingMode: currentCamera
+                    facingMode: "environment", // Всегда используем заднюю камеру
+                    width: { ideal: 1280, min: 640 },
+                    height: { ideal: 720, min: 480 }
                 };
 
                 console.log('Запуск сканера с настройками:', { config, constraints });
@@ -321,16 +321,6 @@
                     console.error('Ошибка остановки сканера:', error);
                 }
             }
-        }
-
-        // Переключение камеры
-        async function switchCamera() {
-            await stopScanner();
-            currentCamera = currentCamera === 'environment' ? 'user' : 'environment';
-            updateStatus(`Переключение на ${currentCamera === 'environment' ? 'заднюю' : 'переднюю'} камеру...`, true);
-            setTimeout(() => {
-                startScanner();
-            }, 1000);
         }
 
         // Перезапуск сканера
