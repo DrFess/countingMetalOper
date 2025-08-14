@@ -2,12 +2,39 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Сканер QR-кода</title>
   <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
-    body { font-family: sans-serif; text-align: center; margin: 0; padding: 20px; }
-    #reader { width: 100%; max-width: 350px; margin: auto; }
-    #result { margin-top: 20px; font-size: 18px; }
+    body { 
+      font-family: sans-serif; 
+      text-align: center; 
+      margin: 0; 
+      padding: 20px; 
+      background-color: #f5f5f5;
+    }
+    #reader { 
+      width: 100%; 
+      max-width: 350px; 
+      margin: auto; 
+      border: 2px solid #ddd;
+      border-radius: 8px;
+    }
+    #result { 
+      margin-top: 20px; 
+      font-size: 18px; 
+      padding: 10px;
+      background-color: white;
+      border-radius: 5px;
+      min-height: 20px;
+    }
+    .error {
+      color: red;
+      background-color: #ffe6e6;
+      padding: 10px;
+      border-radius: 5px;
+      margin: 10px 0;
+    }
   </style>
 </head>
 <body>
@@ -16,22 +43,56 @@
   <div id="result"></div>
 
   <script>
-    const tg = window.Telegram.WebApp;
-    tg.expand(); // Расширить окно
+    // Проверяем доступность Telegram WebApp
+    const tg = window.Telegram?.WebApp;
+    if (tg) {
+      tg.expand(); // Расширить окно
+    }
 
     function onScanSuccess(decodedText, decodedResult) {
+      console.log('QR Code detected:', decodedText);
       document.getElementById("result").innerText = "Результат: " + decodedText;
-      tg.sendData(decodedText);  // Отправляем данные в бота
-      tg.close(); // Закрыть WebApp
-      qrScanner.clear();
+      
+      // Отправляем данные в Telegram бота, если доступен
+      if (tg) {
+        tg.sendData(decodedText);
+        tg.close();
+      }
+      
+      // Останавливаем сканер
+      qrScanner.stop();
+    }
+
+    function onScanFailure(error) {
+      console.warn('Scan error:', error);
+      // Не показываем ошибки пользователю, чтобы не мешать сканированию
+    }
+
+    function onScanError(error) {
+      console.error('Scanner error:', error);
+      document.getElementById("result").innerHTML = 
+        '<div class="error">Ошибка камеры: ' + error.message + '</div>';
     }
 
     const qrScanner = new Html5Qrcode("reader");
+    
+    // Запускаем сканер с обработкой ошибок
     qrScanner.start(
       { facingMode: "environment" },
-      { fps: 10, qrbox: { width: 250, height: 250 } },
-      onScanSuccess
-    );
+      { 
+        fps: 10, 
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0
+      },
+      onScanSuccess,
+      onScanFailure
+    ).then(() => {
+      console.log('Scanner started successfully');
+    }).catch((err) => {
+      console.error('Failed to start scanner:', err);
+      document.getElementById("result").innerHTML = 
+        '<div class="error">Не удалось запустить камеру: ' + err.message + '</div>';
+    });
   </script>
 </body>
 </html>
