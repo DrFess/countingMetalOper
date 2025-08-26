@@ -1,16 +1,20 @@
 import asyncio
 import logging
-from pprint import pprint
 
 from aiogram import Bot, Router, Dispatcher
+from aiogram.client.default import DefaultBotProperties
+from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.filters import Command
 from aiogram.types import Message, KeyboardButton
 from aiogram.utils.keyboard import ReplyKeyboardBuilder
 
 from handlers import scanning_handler
-from settings import BOT_TOKEN
+from settings import BOT_TOKEN, PROXY_URL
 
-bot = Bot(token=BOT_TOKEN)
+session = AiohttpSession(proxy=PROXY_URL)
+bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode='HTML'), session=session)
+# bot = Bot(token=TOKEN, default=DefaultBotProperties(parse_mode='HTML'))  # для запуска на ноуте
+
 router = Router()
 
 
