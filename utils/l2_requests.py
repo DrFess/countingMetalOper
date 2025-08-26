@@ -2,8 +2,6 @@ from datetime import datetime
 
 from requests import Session
 
-from settings import headers_L2_stationar
-
 
 def authorization_L2(connect: Session, login: str, password: str, headers: dict):
     """Авторизация в L2"""
@@ -198,7 +196,7 @@ def save_protocol_data(
                                 'title': 'Дата проведения',
                                 'hide': False,
                                 'values_to_input': [],
-                                'value': '2025-08-25',
+                                'value': datetime.today().strftime('%Y-%m-%d'),
                                 'field_type': 1,
                                 'can_edit': False,
                                 'default_value': '',
