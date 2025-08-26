@@ -81,7 +81,7 @@ async def qr_scanner_handler(message: Message, state: FSMContext):
     checking = check_for_protocols(history_number=history_number)
     if not checking:
         try:
-            create_protocols_func(history_number)
+            create_protocols_func(history_number, data_for_protocol)
         except Exception as error:
             await message.answer(f'При добавлении предоперационного осмотра или протокола операции возникла ошибка: {error}')
     builder = ReplyKeyboardBuilder()

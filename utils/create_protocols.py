@@ -6,7 +6,7 @@ from settings import LOGIN, PASSWORD, headers_auth, headers_L2_stationar
 from utils.l2_requests import authorization_L2, create_protocol, get_protocol_info, save_protocol_data
 
 
-def create_protocols_func(history_number: str):
+def create_protocols_func(history_number: str, implant: str):
     """Создаёт протоколы предоперационный и операции"""
     session = Session()
     authorization_L2(connect=session, login=LOGIN, password=PASSWORD, headers=headers_auth)
@@ -21,7 +21,7 @@ def create_protocols_func(history_number: str):
         pk=protocol_info.get('pk'),
         direction_pk=direction_pk,
         history_number=int(history_number),
-        implant='спица тестово',
+        implant=implant,
         count_implant='1',
         examination_date=protocol_info.get('examination_date'),
         headers=headers_L2_stationar
