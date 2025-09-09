@@ -31,7 +31,11 @@ async def get_history_numbers(message: Message):
         operation_plan = [{'direction': 'План операций не найден'}]
     builder = InlineKeyboardBuilder()
     for item in operation_plan:
-        builder.row(InlineKeyboardButton(text=item.get('direction'), callback_data=f"historyNumber_{item.get('direction')}"))
+        history_number = item.get('direction')
+        surname_patient = item.get('fio_patient')
+        surname_patient_list = surname_patient.split(' ')
+        fio_patient = '.'.join([surname_patient_list[0][0], surname_patient_list[1]])
+        builder.row(InlineKeyboardButton(text=f'{history_number} - {fio_patient}', callback_data=f'historyNumber_{history_number}'))
     builder.row(InlineKeyboardButton(text='Ввести номер истории', callback_data='historyNumber_manual'))
     await message.answer('План операций', reply_markup=builder.as_markup())
 
