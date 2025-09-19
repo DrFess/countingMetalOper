@@ -18,6 +18,8 @@ router = Router()
 class Scanning(StatesGroup):
     history_number_step = State()
     prescan_step = State()
+    counting_step = State()
+    finished_step = State()
 
 
 @router.message(F.text == 'Добавить медицинское изделие')
@@ -80,19 +82,66 @@ async def qr_scanner_handler(message: Message, state: FSMContext):
 
     scanner_data = json.loads(message.web_app_data.data)
     data_for_protocol = scanner_data.get('qr_data')
+    await state.update_data(metal_info=data_for_protocol)
+    await message.answer(text=f'Результат сканирования: {data_for_protocol})\n\n'
+                              f'Укажите количество установленных конструкций\n\n'
+                              f'\u2757 ВАЖНО \u2757 Отправить нужно только цифру, никаких других символов\u2757')
+    await state.set_state(Scanning.counting_step)
+
+
+@router.message(Scanning.counting_step)
+async def get_count_data(message: Message, state: FSMContext):
+    """Обработчик сообщения о количестве изделий"""
+    metal_count = message.text
+    if metal_count.isdigit():
+        await state.update_data(count=metal_count)
+        data = await state.get_data()
+        history_number = data.get('history_number')
+        data_for_protocol = data.get('metal_info')
+        builder = InlineKeyboardBuilder()
+        builder.row(InlineKeyboardButton(text=f'Верно, добавить протоколы', callback_data='true'))
+        builder.row(InlineKeyboardButton(text=f'Ошибка, исправить', callback_data='false'))
+        await message.answer(text=f'История болезни: {history_number}\n'
+                                  f'Имплантированное изделие: {data_for_protocol}\n'
+                                  f'Количество: {metal_count}', reply_markup=builder.as_markup())
+        await state.set_state(Scanning.finished_step)
+    else:
+        await message.answer(text=f'В сообщение {metal_count} указаны отличные от цифр символы\n\n'
+                                  f'Укажите количество установленных конструкций\n\n'
+                                  f'\u2757 ВАЖНО \u2757 Отправить нужно только цифру, никаких других символов\u2757'
+                             )
+
+
+@router.callback_query(F.data.contains('true'), Scanning.finished_step)
+async def create_protocols_handler(callback: CallbackQuery, state: FSMContext):
+    """Обработчик создания протокола (финальный этап)"""
     data = await state.get_data()
     history_number = data.get('history_number')
+    data_for_protocol = data.get('metal_info')
+    metal_count = data.get('count')
     checking = check_for_protocols(history_number=history_number)
     if not checking:
         try:
-            create_protocols_func(history_number, data_for_protocol)
+            create_protocols_func(history_number, data_for_protocol, metal_count)
         except Exception as error:
-            await message.answer(f'При добавлении предоперационного осмотра или протокола операции возникла ошибка: {error}')
+            await callback.message.answer(
+                f'При добавлении предоперационного осмотра или протокола операции возникла ошибка: {error}')
     builder = ReplyKeyboardBuilder()
     builder.row(KeyboardButton(text='Добавить медицинское изделие'))
     builder.row(KeyboardButton(text='Результаты из базы данных'))
-    await message.answer(
-        f'Результат сканирования: {data_for_protocol} добавлен в протокол операции',
+    await callback.message.answer(
+        'Предоперационный протокол и протокол операции созданы. Данные о конструкции добавлены в протокол операции',
         reply_markup=builder.as_markup(resize_keyboard=True, one_time_keyboard=True)
     )
+    await state.clear()
+
+
+@router.callback_query(F.data.contains('false'), Scanning.finished_step)
+async def wrong_data_handler(callback: CallbackQuery, state: FSMContext):
+    builder = ReplyKeyboardBuilder()
+    builder.row(KeyboardButton(text='Добавить медицинское изделие'))
+    builder.row(KeyboardButton(text='Результаты из базы данных'))
+    await callback.message.answer('Вы указали, что данные ошибочные. Начните процесс добавления конструкции заново',
+                                  reply_markup=builder.as_markup(resize_keyboard=True, one_time_keyboard=True)
+                                  )
     await state.clear()
