@@ -1050,7 +1050,7 @@ def save_protocol_data(
                                 'values_to_input': [],
                                 'value': count_implant,
                                 'field_type': 18,
-                                'can_edit': True,
+                                'can_edit': False,
                                 'default_value': '',
                                 'visibility': '{24896} != "-"',
                                 'required': False,
