@@ -22,7 +22,7 @@ def check_for_protocols(history_number: str) -> bool:
     else:
         for item in result:
             if item.get('researches') == ['Протокол операции (тр)'] or item.get('researches') == ['Предоперационный эпикриз']:
-                if item.get('date_create') == datetime.today().strftime('%Y-%m-%d'):
+                if datetime.today().strftime('%d.%m.%Y') in item.get('date_create'):
                     return True
                 else:
                     return False
