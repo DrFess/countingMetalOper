@@ -1042,8 +1042,8 @@ def save_protocol_data(
                                 'isDiagTable': False,
                             },
                             {
-                                'pk': 24897,
-                                'order': 7,
+                                'pk': 19816,
+                                'order': 6,
                                 'lines': 1,
                                 'title': 'Количество имплантированных медицинских изделий',
                                 'hide': False,
